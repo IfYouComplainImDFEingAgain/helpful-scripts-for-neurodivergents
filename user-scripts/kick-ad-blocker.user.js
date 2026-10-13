@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Kick Ad Blocker
 // @namespace    kick-adblock
-// @version      1.0.0
+// @version      1.0.1
 // @description  Blocks video ads on Kick.com live streams. No tracking, no data collection.
 // @match        *://kick.com/*
 // @match        *://*.kick.com/*
@@ -62,14 +62,16 @@
     if (cur && typeof cur === 'object') delete cur[parts[parts.length - 1]];
   };
 
+  // Only overwrites keys that already exist; never creates or replaces parents.
   const setPath = (obj, path, value) => {
     const parts = path.split('.').filter(Boolean);
     let cur = obj;
     for (let i = 0; i < parts.length - 1; i++) {
-      if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+      if (!cur || typeof cur !== 'object' || !(parts[i] in cur)) return;
       cur = cur[parts[i]];
     }
-    cur[parts[parts.length - 1]] = value;
+    const last = parts[parts.length - 1];
+    if (cur && typeof cur === 'object' && last in cur) cur[last] = value;
   };
 
   const stripAds = (json) => {
@@ -78,7 +80,7 @@
     removePath(json, 'video_player.google_ads_sdk');
     removePath(json, 'video_player.pal_sdk');
     setPath(json, 'auto_ads_enabled', false);
-    setPath(json, 'playback_url.live', null);
+    // playback_url.live is the actual IVS stream URL; nulling it kills playback.
     setPath(json, 'video_session.auto_ads_enabled', false);
     return json;
   };
